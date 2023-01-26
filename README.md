@@ -9,11 +9,11 @@ An example secure SLP deployment on Kubernetes
 * Styra DAS - Custom System type
 
 ## Steps
-1. Start minikube
+### 1. Start minikube
 
-2. Create a Custom system in Styra DAS
+### 2. Create a Custom system in Styra DAS
 
-3. Deploy the OPA config as a Secret for use by the SLP
+### 3. Deploy the OPA config as a Secret for use by the SLP
 
 Download the `opa-conf.yaml` from  Settings > Install
 
@@ -23,7 +23,7 @@ k create secret generic slp-config --from-file=slp.yaml=opa-conf.yaml
 ```
 > We rename the file to slp.yaml as this will be used by the SLP only (not OPA)
 
-4. Deploy TLS Secret for SLP HTTPS
+### 4. Deploy TLS Secret for SLP HTTPS
 
 Create CA and Cert with `certstrap`. Alternatively you could use cert-manager to auto-generate the certs.
 ```sh
@@ -38,7 +38,7 @@ Create the Secret
 k create secret tls slp-tls --cert=out/slp-fullchain.crt --key=out/slp.key
 ```
 
-5. Deploy Styra Local Plane
+### 5. Deploy Styra Local Plane
 Create a Token as a Secret for use in the SLP Authz policy
 ```sh
 k create secret generic slp-authz-token --from-literal=token=12345-same-as-my-luggage
@@ -49,7 +49,7 @@ Deploy the SLP
 k apply -f slp.yaml
 ```
 
-6. Deploy App with OPA sidecar
+### 6. Deploy App with OPA sidecar
 Create Configmap for MyRootCA
 ```sh
 k create configmap my-root-ca.crt --from-file=ca.crt=out/MyRootCA.crt
@@ -60,7 +60,7 @@ k create configmap my-root-ca.crt --from-file=ca.crt=out/MyRootCA.crt
 k apply -f app-with-opa-sidecar.yaml
 ```
 
-7. Create and test the policy
+### 7. Create and test the policy
 Add a Policy in DAS for `httpapi.authz` with the following contents:
 ```
 package httpapi.authz
