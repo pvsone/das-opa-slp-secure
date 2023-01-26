@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: slp
+spec:
+  ports:
+  - name: https
+    port: 8443
+  selector:
+    app: slp
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: slp
+spec:
+  selector:
+    matchLabels:
+      app: slp
+  replicas: 1
+  serviceName: "slp"
+  template:
+    metadata:
+      labels:
+        app: slp
+    spec:
+      initContainers:
+      - name: create-authz-policy
+        image: styra/styra-local-plane:0.6.1
+        env:
+        - name: SLP_AUTHZ_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slp-authz-token
+              key: token
+        command:
+        - /bin/sh
+        - -c
+        - |
+          cat > /authz/authz.rego <<EOF
+          package system.authz
+          # Deny access by default.
+          default allow = false
+          # Allow authenticated access with the token
+          allow { input.identity == "$SLP_AUTHZ_TOKEN" }
+          EOF
+        volumeMounts:
+        - mountPath: /authz
+          name: slp-authz-vol
+      containers:
+      - name: slp
+        image: styra/styra-local-plane:0.6.1
+        args:
+        - "--config-file=/config/slp.yaml"
+        - "--addr=0.0.0.0:8443"
+        - "--tls-cert-file=/certs/tls/tls.crt"
+        - "--tls-private-key-file=/certs/tls/tls.key"
+        - "--auth=token"
+        - "--authz=/authz/authz.rego"
+        volumeMounts:
+        - mountPath: /certs/tls
+          name: slp-certs-vol
+          readOnly: true
+        - mountPath: /config
+          name: slp-config-vol
+          readOnly: true
+        - mountPath: /scratch
+          name: slp-scratch-vol
+        - mountPath: /authz
+          name: slp-authz-vol
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /v1/system/alive
+            scheme: HTTP
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /v1/system/ready
+            scheme: HTTP
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: slp-config-vol
+        secret:
+          secretName: slp-config
+      - name: slp-certs-vol
+        secret:
+          secretName: slp-tls
+      - name: slp-authz-vol
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: slp-scratch-vol
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
