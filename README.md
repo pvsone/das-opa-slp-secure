@@ -56,7 +56,7 @@ k create configmap my-root-ca.crt --from-file=ca.crt=out/MyRootCA.crt
 ```
 
 ```sh
-# **Replace the system-id value on line 11 of opa.yaml with the id from your DAS system**
+# **Replace the system-id value on line 11 of app-with-opa-sidecar.yaml with the id from your DAS system**
 k apply -f app-with-opa-sidecar.yaml
 ```
 
